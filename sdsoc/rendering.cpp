@@ -103,45 +103,72 @@ bit8 find_max( bit8 in0, bit8 in1, bit8 in2 )
 /*======================PROCESSING STAGES========================*/
 
 // project a 3D triangle to a 2D triangle
-void projection ( Triangle_3D triangle_3d, Triangle_2D *triangle_2d, bit2 angle )
+void projection ( int data_in[10], int data_out[7])
 {
-  #pragma HLS INLINE off
+#pragma HLS INTERFACE ap_hs port=data_out
+#pragma HLS INTERFACE ap_hs port=data_in
+  //#pragma HLS INLINE off
   // Setting camera to (0,0,-1), the canvas at z=0 plane
   // The 3D model lies in z>0 space
   // The coordinate on canvas is proportional to the corresponding coordinate 
   // on space
+
+  Triangle_3D triangle_3d;
+  int angle;
+  Triangle_2D triangle_2d;
+
+  angle = data_in[0];
+  triangle_3d.x0 = (bit8)data_in[1];
+  triangle_3d.y0 = (bit8)data_in[2];
+  triangle_3d.z0 = (bit8)data_in[3];
+  triangle_3d.x1 = (bit8)data_in[4];
+  triangle_3d.y1 = (bit8)data_in[5];
+  triangle_3d.z1 = (bit8)data_in[6];
+  triangle_3d.x2 = (bit8)data_in[7];
+  triangle_3d.y2 = (bit8)data_in[8];
+  triangle_3d.z2 = (bit8)data_in[9];
+
+
   if(angle == 0)
   {
-    triangle_2d->x0 = triangle_3d.x0;
-    triangle_2d->y0 = triangle_3d.y0;
-    triangle_2d->x1 = triangle_3d.x1;
-    triangle_2d->y1 = triangle_3d.y1;
-    triangle_2d->x2 = triangle_3d.x2;
-    triangle_2d->y2 = triangle_3d.y2;
-    triangle_2d->z  = triangle_3d.z0 / 3 + triangle_3d.z1 / 3 + triangle_3d.z2 / 3;
+    triangle_2d.x0 = triangle_3d.x0;
+    triangle_2d.y0 = triangle_3d.y0;
+    triangle_2d.x1 = triangle_3d.x1;
+    triangle_2d.y1 = triangle_3d.y1;
+    triangle_2d.x2 = triangle_3d.x2;
+    triangle_2d.y2 = triangle_3d.y2;
+    triangle_2d.z  = triangle_3d.z0 / 3 + triangle_3d.z1 / 3 + triangle_3d.z2 / 3;
   }
 
   else if(angle == 1)
   {
-    triangle_2d->x0 = triangle_3d.x0;
-    triangle_2d->y0 = triangle_3d.z0;
-    triangle_2d->x1 = triangle_3d.x1;
-    triangle_2d->y1 = triangle_3d.z1;
-    triangle_2d->x2 = triangle_3d.x2;
-    triangle_2d->y2 = triangle_3d.z2;
-    triangle_2d->z  = triangle_3d.y0 / 3 + triangle_3d.y1 / 3 + triangle_3d.y2 / 3;
+    triangle_2d.x0 = triangle_3d.x0;
+    triangle_2d.y0 = triangle_3d.z0;
+    triangle_2d.x1 = triangle_3d.x1;
+    triangle_2d.y1 = triangle_3d.z1;
+    triangle_2d.x2 = triangle_3d.x2;
+    triangle_2d.y2 = triangle_3d.z2;
+    triangle_2d.z  = triangle_3d.y0 / 3 + triangle_3d.y1 / 3 + triangle_3d.y2 / 3;
   }
       
   else if(angle == 2)
   {
-    triangle_2d->x0 = triangle_3d.z0;
-    triangle_2d->y0 = triangle_3d.y0;
-    triangle_2d->x1 = triangle_3d.z1;
-    triangle_2d->y1 = triangle_3d.y1;
-    triangle_2d->x2 = triangle_3d.z2;
-    triangle_2d->y2 = triangle_3d.y2;
-    triangle_2d->z  = triangle_3d.x0 / 3 + triangle_3d.x1 / 3 + triangle_3d.x2 / 3;
+    triangle_2d.x0 = triangle_3d.z0;
+    triangle_2d.y0 = triangle_3d.y0;
+    triangle_2d.x1 = triangle_3d.z1;
+    triangle_2d.y1 = triangle_3d.y1;
+    triangle_2d.x2 = triangle_3d.z2;
+    triangle_2d.y2 = triangle_3d.y2;
+    triangle_2d.z  = triangle_3d.x0 / 3 + triangle_3d.x1 / 3 + triangle_3d.x2 / 3;
   }
+  data_out[0] = triangle_2d.x0;
+  data_out[1] = triangle_2d.y0;
+  data_out[2] = triangle_2d.x1;
+  data_out[3] = triangle_2d.y1;
+  data_out[4] = triangle_2d.x2;
+  data_out[5] = triangle_2d.y2;
+  data_out[6] = triangle_2d.z;
+
 }
 
 // calculate bounding box for a 2D triangle
@@ -335,7 +362,29 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     #endif
 
     // five stages for processing each 3D triangle
-    projection( triangle_3ds, &triangle_2ds, angle );
+    int data_in_pro[10];
+    int data_out_pro[7];
+    data_in_pro[0] = angle;
+    data_in_pro[1] = triangle_3ds.x0;
+    data_in_pro[2] = triangle_3ds.y0;
+    data_in_pro[3] = triangle_3ds.z0;
+    data_in_pro[4] = triangle_3ds.x1;
+    data_in_pro[5] = triangle_3ds.y1;
+    data_in_pro[6] = triangle_3ds.z1;
+    data_in_pro[7] = triangle_3ds.x2;
+    data_in_pro[8] = triangle_3ds.y2;
+    data_in_pro[9] = triangle_3ds.z2;
+
+    projection(data_in_pro, data_out_pro);
+
+    triangle_2ds.x0 = data_out_pro[0];
+    triangle_2ds.y0 = data_out_pro[1];
+    triangle_2ds.x1 = data_out_pro[2];
+    triangle_2ds.y1 = data_out_pro[3];
+    triangle_2ds.x2 = data_out_pro[4];
+    triangle_2ds.y2 = data_out_pro[5];
+    triangle_2ds.z = data_out_pro[6];
+
     flag = rasterization1( triangle_2ds, max_min, &triangle_2ds_same, max_index);
     size_fragment = rasterization2( flag, max_min, max_index, triangle_2ds_same, fragment );
     size_pixels = zculling( i, fragment, size_fragment, pixels);
