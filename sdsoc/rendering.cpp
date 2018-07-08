@@ -264,10 +264,10 @@ void rasterization2 (int data_in[15], int data_out[2002])
 {
 #pragma HLS INTERFACE ap_hs port=data_in
 #pragma HLS INTERFACE ap_hs port=data_out
-	static bit2 flag;
-	static bit8 max_min_0, max_min_1, max_min_2, max_min_3, max_min_4;
-	static bit16 max_index;
-	static Triangle_2D triangle_2d_same;
+	bit2 flag;
+	bit8 max_min_0, max_min_1, max_min_2, max_min_3, max_min_4;
+	bit16 max_index;
+	Triangle_2D triangle_2d_same;
 	int data_in_tmp[15];
 	CandidatePixel fragment2[500];
 	for(int i_ylx=0; i_ylx<15; i_ylx++)
@@ -297,6 +297,12 @@ void rasterization2 (int data_in[15], int data_out[2002])
   if ( flag )
   {
 	  data_out[0] = counter;
+	  for (int i_ylx=0; i_ylx<500; i_ylx++){
+	 	  data_out[4*i_ylx+1] = fragment2[i_ylx].x;
+	 	  data_out[4*i_ylx+2] = fragment2[i_ylx].y;
+	 	  data_out[4*i_ylx+3] = fragment2[i_ylx].z;
+	 	  data_out[4*i_ylx+4] = fragment2[i_ylx].color;
+	  }
 	  data_out[2001] = 0;
 	  return;
   }
@@ -429,6 +435,8 @@ void coloringFB(int data_in[1502],  bit8 frame_buffer[MAX_X][MAX_Y])
 // stream out the frame buffer
 void output_FB(bit8 frame_buffer[MAX_X][MAX_Y], bit32 output[NUM_FB])
 {
+#pragma HLS INTERFACE ap_hs port=output
+#pragma HLS INTERFACE ap_hs port=frame_buffer
   #pragma HLS INLINE
   bit32 out_FB = 0;
   OUTPUT_FB_ROW: for ( bit16 i = 0; i < MAX_X; i++)
