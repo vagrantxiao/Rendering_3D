@@ -322,10 +322,13 @@ void rasterization2 (int data_in[14], int data_out[2001])
 }
 
 // filter hidden pixels
-bit16 zculling ( bit16 counter, int data_in[2001], Pixel pixels[])
+void zculling ( bit16 counter, int data_in[2001], int data_out[1501])
 {
+#pragma HLS INTERFACE ap_hs port=data_out
+#pragma HLS INTERFACE ap_hs port=data_in
 	CandidatePixel fragments[500];
 	bit16 size;
+	Pixel pixels[500];
     for (int i_ylx=0; i_ylx<500; i_ylx++){
   	  fragments[i_ylx].x = data_in[4*i_ylx];
   	  fragments[i_ylx].y = data_in[4*i_ylx+1];
@@ -365,13 +368,27 @@ bit16 zculling ( bit16 counter, int data_in[2001], Pixel pixels[])
     }
   }
 
-  return pixel_cntr;
+  for (int i_ylx=0; i_ylx<500; i_ylx++){
+	  data_out[i_ylx*3] = pixels[i_ylx].x;
+	  data_out[i_ylx*3+1] = pixels[i_ylx].y;
+	  data_out[i_ylx*3+2] = pixels[i_ylx].color;
+  }
+  data_out[1500] = pixel_cntr;
 }
 
 // color the frame buffer
-void coloringFB(bit16 counter,  bit16 size_pixels, Pixel pixels[], bit8 frame_buffer[MAX_X][MAX_Y])
+void coloringFB(bit16 counter, int data_in[1501],  bit8 frame_buffer[MAX_X][MAX_Y])
 {
-  #pragma HLS INLINE off
+#pragma HLS INTERFACE ap_hs port=data_in
+#pragma HLS INTERFACE ap_hs port=frame_buffer
+	Pixel pixels[500];
+	bit16 size_pixels;
+	for (int i_ylx=0; i_ylx<500; i_ylx++){
+	  pixels[i_ylx].x =  data_in[i_ylx*3];
+	  pixels[i_ylx].y = data_in[i_ylx*3+1];
+	  pixels[i_ylx].color = data_in[i_ylx*3+2];
+	}
+	size_pixels = data_in[1500];
 
   if ( counter == 0 )
   {
@@ -461,6 +478,7 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     int data_tmp_1[7];
     int data_tmp_2[14];
     int data_tmp_3[2001];
+    int data_tmp_4[1501];
     data_in_pro[0] = angle;
     data_in_pro[1] = triangle_3ds.x0;
     data_in_pro[2] = triangle_3ds.y0;
@@ -475,9 +493,8 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     projection(data_in_pro, data_tmp_1);
     rasterization1( data_tmp_1, data_tmp_2);
     rasterization2(data_tmp_2, data_tmp_3);
-
-    size_pixels = zculling( i, data_tmp_3, pixels);
-    coloringFB ( i, size_pixels, pixels, frame_buffer);
+    zculling( i, data_tmp_3, data_tmp_4);
+    coloringFB ( i, data_tmp_4, frame_buffer);
   }
 
   // output values: frame buffer
