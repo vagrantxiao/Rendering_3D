@@ -172,23 +172,43 @@ void projection ( int data_in[10], int data_out[7])
 }
 
 // calculate bounding box for a 2D triangle
-bit2 rasterization1 ( Triangle_2D triangle_2d, bit8 max_min[], Triangle_2D *triangle_2d_same, bit16 max_index[])
+void rasterization1 ( int data_in[7], int data_out[14])
 {
-  #pragma HLS INLINE off
+#pragma HLS INTERFACE ap_hs port=data_out
+#pragma HLS INTERFACE ap_hs port=data_in
+  Triangle_2D triangle_2d;
+  bit8 max_min[5];
+  bit16 max_index;
+  Triangle_2D triangle_2d_same;
+  int flag;
+  triangle_2d.x0 = data_in[0];
+  triangle_2d.y0 = data_in[1];
+  triangle_2d.x1 = data_in[2];
+  triangle_2d.y1 = data_in[3];
+  triangle_2d.x2 = data_in[4];
+  triangle_2d.y2 = data_in[5];
+  triangle_2d.z  = data_in[6];
+
+
+  //#pragma HLS INLINE off
   // clockwise the vertices of input 2d triangle
-  if ( check_clockwise( triangle_2d ) == 0 )
-    return 1;
+  if ( check_clockwise( triangle_2d ) == 0 ){
+	  data_out[13] = 1;
+	  return;
+  }
+
+
   if ( check_clockwise( triangle_2d ) < 0 )
     clockwise_vertices( &triangle_2d );
 
   // copy the same 2D triangle
-  triangle_2d_same->x0 = triangle_2d.x0;
-  triangle_2d_same->y0 = triangle_2d.y0;
-  triangle_2d_same->x1 = triangle_2d.x1;
-  triangle_2d_same->y1 = triangle_2d.y1;
-  triangle_2d_same->x2 = triangle_2d.x2;
-  triangle_2d_same->y2 = triangle_2d.y2;
-  triangle_2d_same->z  = triangle_2d.z ;
+  triangle_2d_same.x0 = triangle_2d.x0;
+  triangle_2d_same.y0 = triangle_2d.y0;
+  triangle_2d_same.x1 = triangle_2d.x1;
+  triangle_2d_same.y1 = triangle_2d.y1;
+  triangle_2d_same.x2 = triangle_2d.x2;
+  triangle_2d_same.y2 = triangle_2d.y2;
+  triangle_2d_same.z  = triangle_2d.z ;
 
   // find the rectangle bounds of 2D triangles
   max_min[0] = find_min( triangle_2d.x0, triangle_2d.x1, triangle_2d.x2 );
@@ -198,9 +218,22 @@ bit2 rasterization1 ( Triangle_2D triangle_2d, bit8 max_min[], Triangle_2D *tria
   max_min[4] = max_min[1] - max_min[0];
 
   // calculate index for searching pixels
-  max_index[0] = (max_min[1] - max_min[0]) * (max_min[3] - max_min[2]);
-
-  return 0;
+  max_index = (max_min[1] - max_min[0]) * (max_min[3] - max_min[2]);
+  data_out[0] = max_min[0];
+  data_out[1] = max_min[1];
+  data_out[2] = max_min[2];
+  data_out[3] = max_min[3];
+  data_out[4] = max_min[4];
+  data_out[5] = triangle_2d_same.x0;
+  data_out[6] = triangle_2d_same.y0;
+  data_out[7] = triangle_2d_same.x1;
+  data_out[8] = triangle_2d_same.y1;
+  data_out[9] = triangle_2d_same.x2;
+  data_out[10] = triangle_2d_same.y2;
+  data_out[11] = triangle_2d_same.z;
+  data_out[12] = max_index;
+  data_out[13] = 0;
+  return;
 }
 
 // find pixels in the triangles from the bounding box
@@ -363,7 +396,8 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
 
     // five stages for processing each 3D triangle
     int data_in_pro[10];
-    int data_out_pro[7];
+    int data_tmp_1[7];
+    int data_tmp_2[14];
     data_in_pro[0] = angle;
     data_in_pro[1] = triangle_3ds.x0;
     data_in_pro[2] = triangle_3ds.y0;
@@ -375,17 +409,24 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     data_in_pro[8] = triangle_3ds.y2;
     data_in_pro[9] = triangle_3ds.z2;
 
-    projection(data_in_pro, data_out_pro);
+    projection(data_in_pro, data_tmp_1);
+    rasterization1( data_tmp_1, data_tmp_2);
 
-    triangle_2ds.x0 = data_out_pro[0];
-    triangle_2ds.y0 = data_out_pro[1];
-    triangle_2ds.x1 = data_out_pro[2];
-    triangle_2ds.y1 = data_out_pro[3];
-    triangle_2ds.x2 = data_out_pro[4];
-    triangle_2ds.y2 = data_out_pro[5];
-    triangle_2ds.z = data_out_pro[6];
+    max_min[0] = data_tmp_2[0];
+    max_min[1] = data_tmp_2[1];
+    max_min[2] = data_tmp_2[2];
+    max_min[3] = data_tmp_2[3];
+    max_min[4] = data_tmp_2[4];
+    triangle_2ds_same.x0 = data_tmp_2[5];
+    triangle_2ds_same.y0 = data_tmp_2[6];
+    triangle_2ds_same.x1 = data_tmp_2[7];
+    triangle_2ds_same.y1 = data_tmp_2[8];
+    triangle_2ds_same.x2 = data_tmp_2[9];
+    triangle_2ds_same.y2 = data_tmp_2[10];
+    triangle_2ds_same.z = data_tmp_2[11];
+    max_index[0] = data_tmp_2[12];
+    flag = data_tmp_2[13];
 
-    flag = rasterization1( triangle_2ds, max_min, &triangle_2ds_same, max_index);
     size_fragment = rasterization2( flag, max_min, max_index, triangle_2ds_same, fragment );
     size_pixels = zculling( i, fragment, size_fragment, pixels);
     coloringFB ( i, size_pixels, pixels, frame_buffer);
