@@ -193,7 +193,20 @@ void rasterization1 ( int data_in[7], int data_out[14])
   //#pragma HLS INLINE off
   // clockwise the vertices of input 2d triangle
   if ( check_clockwise( triangle_2d ) == 0 ){
-	  data_out[13] = 1;
+	  data_out[0] = 1;
+	  data_out[1] = 0;
+	  data_out[2] = 0;
+	  data_out[3] = 0;
+	  data_out[4] = 0;
+	  data_out[5] = 0;
+	  data_out[6] = 0;
+	  data_out[7] = 0;
+	  data_out[8] = 0;
+	  data_out[9] = 0;
+	  data_out[10] = 0;
+	  data_out[11] = 0;
+	  data_out[12] = 0;
+	  data_out[13] = 0;
 	  return;
   }
 
@@ -219,62 +232,72 @@ void rasterization1 ( int data_in[7], int data_out[14])
 
   // calculate index for searching pixels
   max_index = (max_min[1] - max_min[0]) * (max_min[3] - max_min[2]);
-  data_out[0] = max_min[0];
-  data_out[1] = max_min[1];
-  data_out[2] = max_min[2];
-  data_out[3] = max_min[3];
-  data_out[4] = max_min[4];
-  data_out[5] = triangle_2d_same.x0;
-  data_out[6] = triangle_2d_same.y0;
-  data_out[7] = triangle_2d_same.x1;
-  data_out[8] = triangle_2d_same.y1;
-  data_out[9] = triangle_2d_same.x2;
-  data_out[10] = triangle_2d_same.y2;
-  data_out[11] = triangle_2d_same.z;
-  data_out[12] = max_index;
-  data_out[13] = 0;
+  data_out[0] = 0;
+  data_out[1] = max_index;
+  data_out[2] = max_min[0];
+  data_out[3] = max_min[1];
+  data_out[4] = max_min[2];
+  data_out[5] = max_min[3];
+  data_out[6] = max_min[4];
+  data_out[7] = triangle_2d_same.x0;
+  data_out[8] = triangle_2d_same.y0;
+  data_out[9] = triangle_2d_same.x1;
+  data_out[10] = triangle_2d_same.y1;
+  data_out[11] = triangle_2d_same.x2;
+  data_out[12] = triangle_2d_same.y2;
+  data_out[13] = triangle_2d_same.z;
+
+
   return;
 }
 
 // find pixels in the triangles from the bounding box
 void rasterization2 (int data_in[14], int data_out[2001])
 {
-	bit2 flag;
-	bit8 max_min[5];
-	bit16 max_index[1];
-	Triangle_2D triangle_2d_same;
+#pragma HLS INTERFACE ap_hs port=data_in
+#pragma HLS INTERFACE ap_hs port=data_out
+	static bit2 flag;
+	static bit8 max_min_0, max_min_1, max_min_2, max_min_3, max_min_4;
+	static bit16 max_index;
+	static Triangle_2D triangle_2d_same;
+	int data_in_tmp[14];
 	CandidatePixel fragment2[500];
+	for(int i_ylx=0; i_ylx<14; i_ylx++)
+	{
+		data_in_tmp[i_ylx] = data_in[i_ylx];
+	}
 
-    max_min[0] = data_in[0];
-    max_min[1] = data_in[1];
-    max_min[2] = data_in[2];
-    max_min[3] = data_in[3];
-    max_min[4] = data_in[4];
-    triangle_2d_same.x0 = data_in[5];
-    triangle_2d_same.y0 = data_in[6];
-    triangle_2d_same.x1 = data_in[7];
-    triangle_2d_same.y1 = data_in[8];
-    triangle_2d_same.x2 = data_in[9];
-    triangle_2d_same.y2 = data_in[10];
-    triangle_2d_same.z = data_in[11];
-    max_index[0] = data_in[12];
-    flag = data_in[13];
+	flag = data_in_tmp[0];
+	max_index = data_in_tmp[1];
+    max_min_0 = data_in_tmp[2];
+    max_min_1 = data_in_tmp[3];
+    max_min_2 = data_in_tmp[4];
+    max_min_3 = data_in_tmp[5];
+    max_min_4 = data_in_tmp[6];
+    triangle_2d_same.x0 = data_in_tmp[7];
+    triangle_2d_same.y0 = data_in_tmp[8];
+    triangle_2d_same.x1 = data_in_tmp[9];
+    triangle_2d_same.y1 = data_in_tmp[10];
+    triangle_2d_same.x2 = data_in_tmp[11];
+    triangle_2d_same.y2 = data_in_tmp[12];
+    triangle_2d_same.z = data_in_tmp[13];
 
-  //#pragma HLS INLINE off
+
+  #pragma HLS INLINE off
   // clockwise the vertices of input 2d triangle
   if ( flag )
   {
 	  data_out[2000] = 0;
 	  return;
   }
+
   bit8 color = 100;
   bit16 i = 0;
-
-  RAST2: for ( bit16 k = 0; k < max_index[0]; k++ )
+  RAST2: for ( bit16 k = 0; k < max_index; k++ )
   {
     #pragma HLS PIPELINE II=1
-    bit8 x = max_min[0] + k%max_min[4];
-    bit8 y = max_min[2] + k/max_min[4];
+    bit8 x = max_min_0 + k%max_min_4;
+    bit8 y = max_min_2 + k/max_min_4;
 
     if( pixel_in_triangle( x, y, triangle_2d_same ) )
     {
@@ -286,21 +309,30 @@ void rasterization2 (int data_in[14], int data_out[2001])
     }
   }
 
+
   for (int i_ylx=0; i_ylx<500; i_ylx++){
-	  data_out[4*i_ylx] = fragment2[i_ylx].x;
-	  data_out[4*i_ylx+1] = fragment2[i_ylx].y;
-	  data_out[4*i_ylx+2] = fragment2[i_ylx].z;
-	  data_out[4*i_ylx+3] = fragment2[i_ylx].color;
-  }
+ 	  data_out[4*i_ylx] = fragment2[i_ylx].x;
+ 	  data_out[4*i_ylx+1] = fragment2[i_ylx].y;
+ 	  data_out[4*i_ylx+2] = fragment2[i_ylx].z;
+ 	  data_out[4*i_ylx+3] = fragment2[i_ylx].color;
+   }
 
   data_out[2000] = i;
   return;
 }
 
 // filter hidden pixels
-bit16 zculling ( bit16 counter, CandidatePixel fragments[], bit16 size, Pixel pixels[])
+bit16 zculling ( bit16 counter, int data_in[2001], Pixel pixels[])
 {
-  #pragma HLS INLINE off
+	CandidatePixel fragments[500];
+	bit16 size;
+    for (int i_ylx=0; i_ylx<500; i_ylx++){
+  	  fragments[i_ylx].x = data_in[4*i_ylx];
+  	  fragments[i_ylx].y = data_in[4*i_ylx+1];
+  	  fragments[i_ylx].z = data_in[4*i_ylx+2];
+  	  fragments[i_ylx].color = data_in[4*i_ylx+3];
+    }
+    size = data_in[2000];
 
   // initilize the z-buffer in rendering first triangle for an image
   static bit8 z_buffer[MAX_X][MAX_Y];
@@ -444,15 +476,7 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     rasterization1( data_tmp_1, data_tmp_2);
     rasterization2(data_tmp_2, data_tmp_3);
 
-    for (int i_ylx=0; i_ylx<500; i_ylx++){
-  	  fragment[i_ylx].x = data_tmp_3[4*i_ylx];
-  	  fragment[i_ylx].y = data_tmp_3[4*i_ylx+1];
-  	  fragment[i_ylx].z = data_tmp_3[4*i_ylx+2];
-  	  fragment[i_ylx].color = data_tmp_3[4*i_ylx+3];
-    }
-    size_fragment = data_tmp_3[2000];
-
-    size_pixels = zculling( i, fragment, size_fragment, pixels);
+    size_pixels = zculling( i, data_tmp_3, pixels);
     coloringFB ( i, size_pixels, pixels, frame_buffer);
   }
 
