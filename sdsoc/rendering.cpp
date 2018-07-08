@@ -237,8 +237,28 @@ void rasterization1 ( int data_in[7], int data_out[14])
 }
 
 // find pixels in the triangles from the bounding box
-bit16 rasterization2 ( bit2 flag, bit8 max_min[], bit16 max_index[], Triangle_2D triangle_2d_same, CandidatePixel fragment2[] )
+bit16 rasterization2 (int data_in[14], CandidatePixel fragment2[] )
 {
+	bit2 flag;
+	bit8 max_min[5];
+	bit16 max_index[1];
+	Triangle_2D triangle_2d_same;
+
+    max_min[0] = data_in[0];
+    max_min[1] = data_in[1];
+    max_min[2] = data_in[2];
+    max_min[3] = data_in[3];
+    max_min[4] = data_in[4];
+    triangle_2d_same.x0 = data_in[5];
+    triangle_2d_same.y0 = data_in[6];
+    triangle_2d_same.x1 = data_in[7];
+    triangle_2d_same.y1 = data_in[8];
+    triangle_2d_same.x2 = data_in[9];
+    triangle_2d_same.y2 = data_in[10];
+    triangle_2d_same.z = data_in[11];
+    max_index[0] = data_in[12];
+    flag = data_in[13];
+
   #pragma HLS INLINE off
   // clockwise the vertices of input 2d triangle
   if ( flag )
@@ -427,7 +447,7 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     max_index[0] = data_tmp_2[12];
     flag = data_tmp_2[13];
 
-    size_fragment = rasterization2( flag, max_min, max_index, triangle_2ds_same, fragment );
+    size_fragment = rasterization2(data_tmp_2, fragment );
     size_pixels = zculling( i, fragment, size_fragment, pixels);
     coloringFB ( i, size_pixels, pixels, frame_buffer);
   }
