@@ -329,6 +329,7 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     triangle_3ds.y2 = input_mi(31, 24);
     triangle_3ds.z2 = input_hi( 7,  0);
 
+
     #ifdef USE_DATAFLOW
       #pragma HLS dataflow
     #endif
