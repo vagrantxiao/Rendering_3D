@@ -103,7 +103,7 @@ bit8 find_max( bit8 in0, bit8 in1, bit8 in2 )
 /*======================PROCESSING STAGES========================*/
 
 // project a 3D triangle to a 2D triangle
-void projection ( int data_in[10], int data_out[7])
+void projection ( int data_in[10], int data_out[8])
 {
 #pragma HLS INTERFACE ap_hs port=data_out
 #pragma HLS INTERFACE ap_hs port=data_in
@@ -117,16 +117,18 @@ void projection ( int data_in[10], int data_out[7])
   int angle;
   Triangle_2D triangle_2d;
 
-  angle = data_in[0];
-  triangle_3d.x0 = (bit8)data_in[1];
-  triangle_3d.y0 = (bit8)data_in[2];
-  triangle_3d.z0 = (bit8)data_in[3];
-  triangle_3d.x1 = (bit8)data_in[4];
-  triangle_3d.y1 = (bit8)data_in[5];
-  triangle_3d.z1 = (bit8)data_in[6];
-  triangle_3d.x2 = (bit8)data_in[7];
-  triangle_3d.y2 = (bit8)data_in[8];
-  triangle_3d.z2 = (bit8)data_in[9];
+  int counter;
+  counter = data_in[0];
+  angle = data_in[1];
+  triangle_3d.x0 = (bit8)data_in[2];
+  triangle_3d.y0 = (bit8)data_in[3];
+  triangle_3d.z0 = (bit8)data_in[4];
+  triangle_3d.x1 = (bit8)data_in[5];
+  triangle_3d.y1 = (bit8)data_in[6];
+  triangle_3d.z1 = (bit8)data_in[7];
+  triangle_3d.x2 = (bit8)data_in[8];
+  triangle_3d.y2 = (bit8)data_in[9];
+  triangle_3d.z2 = (bit8)data_in[10];
 
 
   if(angle == 0)
@@ -161,18 +163,19 @@ void projection ( int data_in[10], int data_out[7])
     triangle_2d.y2 = triangle_3d.y2;
     triangle_2d.z  = triangle_3d.x0 / 3 + triangle_3d.x1 / 3 + triangle_3d.x2 / 3;
   }
-  data_out[0] = triangle_2d.x0;
-  data_out[1] = triangle_2d.y0;
-  data_out[2] = triangle_2d.x1;
-  data_out[3] = triangle_2d.y1;
-  data_out[4] = triangle_2d.x2;
-  data_out[5] = triangle_2d.y2;
-  data_out[6] = triangle_2d.z;
+  data_out[0] = counter;
+  data_out[1] = triangle_2d.x0;
+  data_out[2] = triangle_2d.y0;
+  data_out[3] = triangle_2d.x1;
+  data_out[4] = triangle_2d.y1;
+  data_out[5] = triangle_2d.x2;
+  data_out[6] = triangle_2d.y2;
+  data_out[7] = triangle_2d.z;
 
 }
 
 // calculate bounding box for a 2D triangle
-void rasterization1 ( int data_in[7], int data_out[14])
+void rasterization1 ( int data_in[8], int data_out[15])
 {
 #pragma HLS INTERFACE ap_hs port=data_out
 #pragma HLS INTERFACE ap_hs port=data_in
@@ -181,20 +184,23 @@ void rasterization1 ( int data_in[7], int data_out[14])
   bit16 max_index;
   Triangle_2D triangle_2d_same;
   int flag;
-  triangle_2d.x0 = data_in[0];
-  triangle_2d.y0 = data_in[1];
-  triangle_2d.x1 = data_in[2];
-  triangle_2d.y1 = data_in[3];
-  triangle_2d.x2 = data_in[4];
-  triangle_2d.y2 = data_in[5];
-  triangle_2d.z  = data_in[6];
+  int counter;
+  counter = data_in[0];
+  triangle_2d.x0 = data_in[1];
+  triangle_2d.y0 = data_in[2];
+  triangle_2d.x1 = data_in[3];
+  triangle_2d.y1 = data_in[4];
+  triangle_2d.x2 = data_in[5];
+  triangle_2d.y2 = data_in[6];
+  triangle_2d.z  = data_in[7];
 
 
   //#pragma HLS INLINE off
   // clockwise the vertices of input 2d triangle
   if ( check_clockwise( triangle_2d ) == 0 ){
-	  data_out[0] = 1;
-	  data_out[1] = 0;
+
+	  data_out[0] = counter;
+	  data_out[1] = 1;
 	  data_out[2] = 0;
 	  data_out[3] = 0;
 	  data_out[4] = 0;
@@ -207,6 +213,7 @@ void rasterization1 ( int data_in[7], int data_out[14])
 	  data_out[11] = 0;
 	  data_out[12] = 0;
 	  data_out[13] = 0;
+	  data_out[14] = 0;
 	  return;
   }
 
@@ -232,27 +239,28 @@ void rasterization1 ( int data_in[7], int data_out[14])
 
   // calculate index for searching pixels
   max_index = (max_min[1] - max_min[0]) * (max_min[3] - max_min[2]);
-  data_out[0] = 0;
-  data_out[1] = max_index;
-  data_out[2] = max_min[0];
-  data_out[3] = max_min[1];
-  data_out[4] = max_min[2];
-  data_out[5] = max_min[3];
-  data_out[6] = max_min[4];
-  data_out[7] = triangle_2d_same.x0;
-  data_out[8] = triangle_2d_same.y0;
-  data_out[9] = triangle_2d_same.x1;
-  data_out[10] = triangle_2d_same.y1;
-  data_out[11] = triangle_2d_same.x2;
-  data_out[12] = triangle_2d_same.y2;
-  data_out[13] = triangle_2d_same.z;
+  data_out[0] = counter;
+  data_out[1] = 0;
+  data_out[2] = max_index;
+  data_out[3] = max_min[0];
+  data_out[4] = max_min[1];
+  data_out[5] = max_min[2];
+  data_out[6] = max_min[3];
+  data_out[7] = max_min[4];
+  data_out[8] = triangle_2d_same.x0;
+  data_out[9] = triangle_2d_same.y0;
+  data_out[10] = triangle_2d_same.x1;
+  data_out[11] = triangle_2d_same.y1;
+  data_out[12] = triangle_2d_same.x2;
+  data_out[13] = triangle_2d_same.y2;
+  data_out[14] = triangle_2d_same.z;
 
 
   return;
 }
 
 // find pixels in the triangles from the bounding box
-void rasterization2 (int data_in[14], int data_out[2001])
+void rasterization2 (int data_in[15], int data_out[2001])
 {
 #pragma HLS INTERFACE ap_hs port=data_in
 #pragma HLS INTERFACE ap_hs port=data_out
@@ -260,27 +268,28 @@ void rasterization2 (int data_in[14], int data_out[2001])
 	static bit8 max_min_0, max_min_1, max_min_2, max_min_3, max_min_4;
 	static bit16 max_index;
 	static Triangle_2D triangle_2d_same;
-	int data_in_tmp[14];
+	int data_in_tmp[15];
 	CandidatePixel fragment2[500];
-	for(int i_ylx=0; i_ylx<14; i_ylx++)
+	for(int i_ylx=0; i_ylx<15; i_ylx++)
 	{
 		data_in_tmp[i_ylx] = data_in[i_ylx];
 	}
-
-	flag = data_in_tmp[0];
-	max_index = data_in_tmp[1];
-    max_min_0 = data_in_tmp[2];
-    max_min_1 = data_in_tmp[3];
-    max_min_2 = data_in_tmp[4];
-    max_min_3 = data_in_tmp[5];
-    max_min_4 = data_in_tmp[6];
-    triangle_2d_same.x0 = data_in_tmp[7];
-    triangle_2d_same.y0 = data_in_tmp[8];
-    triangle_2d_same.x1 = data_in_tmp[9];
-    triangle_2d_same.y1 = data_in_tmp[10];
-    triangle_2d_same.x2 = data_in_tmp[11];
-    triangle_2d_same.y2 = data_in_tmp[12];
-    triangle_2d_same.z = data_in_tmp[13];
+	int counter;
+	counter = data_in_tmp[0];
+	flag = data_in_tmp[1];
+	max_index = data_in_tmp[2];
+    max_min_0 = data_in_tmp[3];
+    max_min_1 = data_in_tmp[4];
+    max_min_2 = data_in_tmp[5];
+    max_min_3 = data_in_tmp[6];
+    max_min_4 = data_in_tmp[7];
+    triangle_2d_same.x0 = data_in_tmp[8];
+    triangle_2d_same.y0 = data_in_tmp[9];
+    triangle_2d_same.x1 = data_in_tmp[10];
+    triangle_2d_same.y1 = data_in_tmp[11];
+    triangle_2d_same.x2 = data_in_tmp[12];
+    triangle_2d_same.y2 = data_in_tmp[13];
+    triangle_2d_same.z = data_in_tmp[14];
 
 
   #pragma HLS INLINE off
@@ -474,21 +483,23 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     #endif
 
     // five stages for processing each 3D triangle
-    int data_in_pro[10];
-    int data_tmp_1[7];
-    int data_tmp_2[14];
+    int data_in_pro[11];
+    int data_tmp_1[8];
+    int data_tmp_2[15];
     int data_tmp_3[2001];
     int data_tmp_4[1501];
-    data_in_pro[0] = angle;
-    data_in_pro[1] = triangle_3ds.x0;
-    data_in_pro[2] = triangle_3ds.y0;
-    data_in_pro[3] = triangle_3ds.z0;
-    data_in_pro[4] = triangle_3ds.x1;
-    data_in_pro[5] = triangle_3ds.y1;
-    data_in_pro[6] = triangle_3ds.z1;
-    data_in_pro[7] = triangle_3ds.x2;
-    data_in_pro[8] = triangle_3ds.y2;
-    data_in_pro[9] = triangle_3ds.z2;
+
+    data_in_pro[0] = i;
+    data_in_pro[1] = angle;
+    data_in_pro[2] = triangle_3ds.x0;
+    data_in_pro[3] = triangle_3ds.y0;
+    data_in_pro[4] = triangle_3ds.z0;
+    data_in_pro[5] = triangle_3ds.x1;
+    data_in_pro[6] = triangle_3ds.y1;
+    data_in_pro[7] = triangle_3ds.z1;
+    data_in_pro[8] = triangle_3ds.x2;
+    data_in_pro[9] = triangle_3ds.y2;
+    data_in_pro[10] = triangle_3ds.z2;
 
     projection(data_in_pro, data_tmp_1);
     rasterization1( data_tmp_1, data_tmp_2);
