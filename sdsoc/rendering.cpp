@@ -260,7 +260,7 @@ void rasterization1 ( int data_in[8], int data_out[15])
 }
 
 // find pixels in the triangles from the bounding box
-void rasterization2 (int data_in[15], int data_out[2001])
+void rasterization2 (int data_in[15], int data_out[2002])
 {
 #pragma HLS INTERFACE ap_hs port=data_in
 #pragma HLS INTERFACE ap_hs port=data_out
@@ -296,7 +296,8 @@ void rasterization2 (int data_in[15], int data_out[2001])
   // clockwise the vertices of input 2d triangle
   if ( flag )
   {
-	  data_out[2000] = 0;
+	  data_out[0] = counter;
+	  data_out[2001] = 0;
 	  return;
   }
 
@@ -318,33 +319,36 @@ void rasterization2 (int data_in[15], int data_out[2001])
     }
   }
 
-
+  data_out[0] = counter;
   for (int i_ylx=0; i_ylx<500; i_ylx++){
- 	  data_out[4*i_ylx] = fragment2[i_ylx].x;
- 	  data_out[4*i_ylx+1] = fragment2[i_ylx].y;
- 	  data_out[4*i_ylx+2] = fragment2[i_ylx].z;
- 	  data_out[4*i_ylx+3] = fragment2[i_ylx].color;
+ 	  data_out[4*i_ylx+1] = fragment2[i_ylx].x;
+ 	  data_out[4*i_ylx+2] = fragment2[i_ylx].y;
+ 	  data_out[4*i_ylx+3] = fragment2[i_ylx].z;
+ 	  data_out[4*i_ylx+4] = fragment2[i_ylx].color;
    }
 
-  data_out[2000] = i;
+  data_out[2001] = i;
   return;
 }
 
 // filter hidden pixels
-void zculling ( bit16 counter, int data_in[2001], int data_out[1501])
+void zculling (int data_in[2002], int data_out[1502])
 {
 #pragma HLS INTERFACE ap_hs port=data_out
 #pragma HLS INTERFACE ap_hs port=data_in
 	CandidatePixel fragments[500];
 	bit16 size;
 	Pixel pixels[500];
+	bit16 counter;
+	counter = data_in[0];
+
     for (int i_ylx=0; i_ylx<500; i_ylx++){
-  	  fragments[i_ylx].x = data_in[4*i_ylx];
-  	  fragments[i_ylx].y = data_in[4*i_ylx+1];
-  	  fragments[i_ylx].z = data_in[4*i_ylx+2];
-  	  fragments[i_ylx].color = data_in[4*i_ylx+3];
+  	  fragments[i_ylx].x = data_in[4*i_ylx+1];
+  	  fragments[i_ylx].y = data_in[4*i_ylx+2];
+  	  fragments[i_ylx].z = data_in[4*i_ylx+3];
+  	  fragments[i_ylx].color = data_in[4*i_ylx+4];
     }
-    size = data_in[2000];
+    size = data_in[2001];
 
   // initilize the z-buffer in rendering first triangle for an image
   static bit8 z_buffer[MAX_X][MAX_Y];
@@ -377,27 +381,30 @@ void zculling ( bit16 counter, int data_in[2001], int data_out[1501])
     }
   }
 
+  data_out[0] = counter;
   for (int i_ylx=0; i_ylx<500; i_ylx++){
-	  data_out[i_ylx*3] = pixels[i_ylx].x;
-	  data_out[i_ylx*3+1] = pixels[i_ylx].y;
-	  data_out[i_ylx*3+2] = pixels[i_ylx].color;
+	  data_out[i_ylx*3+1] = pixels[i_ylx].x;
+	  data_out[i_ylx*3+2] = pixels[i_ylx].y;
+	  data_out[i_ylx*3+3] = pixels[i_ylx].color;
   }
-  data_out[1500] = pixel_cntr;
+  data_out[1501] = pixel_cntr;
 }
 
 // color the frame buffer
-void coloringFB(bit16 counter, int data_in[1501],  bit8 frame_buffer[MAX_X][MAX_Y])
+void coloringFB(int data_in[1502],  bit8 frame_buffer[MAX_X][MAX_Y])
 {
 #pragma HLS INTERFACE ap_hs port=data_in
 #pragma HLS INTERFACE ap_hs port=frame_buffer
 	Pixel pixels[500];
 	bit16 size_pixels;
+	bit16 counter;
+	counter = data_in[0];
 	for (int i_ylx=0; i_ylx<500; i_ylx++){
-	  pixels[i_ylx].x =  data_in[i_ylx*3];
-	  pixels[i_ylx].y = data_in[i_ylx*3+1];
-	  pixels[i_ylx].color = data_in[i_ylx*3+2];
+	  pixels[i_ylx].x =  data_in[i_ylx*3+1];
+	  pixels[i_ylx].y = data_in[i_ylx*3+2];
+	  pixels[i_ylx].color = data_in[i_ylx*3+3];
 	}
-	size_pixels = data_in[1500];
+	size_pixels = data_in[1501];
 
   if ( counter == 0 )
   {
@@ -486,8 +493,8 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     int data_in_pro[11];
     int data_tmp_1[8];
     int data_tmp_2[15];
-    int data_tmp_3[2001];
-    int data_tmp_4[1501];
+    int data_tmp_3[2002];
+    int data_tmp_4[1502];
 
     data_in_pro[0] = i;
     data_in_pro[1] = angle;
@@ -504,8 +511,8 @@ void rendering( bit32 input[3*NUM_3D_TRI], bit32 output[NUM_FB])
     projection(data_in_pro, data_tmp_1);
     rasterization1( data_tmp_1, data_tmp_2);
     rasterization2(data_tmp_2, data_tmp_3);
-    zculling( i, data_tmp_3, data_tmp_4);
-    coloringFB ( i, data_tmp_4, frame_buffer);
+    zculling(data_tmp_3, data_tmp_4);
+    coloringFB (data_tmp_4, frame_buffer);
   }
 
   // output values: frame buffer
